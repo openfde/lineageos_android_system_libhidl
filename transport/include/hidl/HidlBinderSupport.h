@@ -222,6 +222,7 @@ sp<IType> fromBinder(const sp<IBinder>& binderIface) {
     }
 }
 
+bool doesSupportHostBinder();
 void configureBinderRpcThreadpool(size_t maxThreads, bool callerWillJoin);
 void joinBinderRpcThreadpool();
 int setupBinderPolling();

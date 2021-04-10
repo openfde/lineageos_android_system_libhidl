@@ -248,6 +248,7 @@ static void registerReference(const hidl_string &interfaceName, const hidl_strin
         return;
     }
 
+    ProcessState::switchToHostBinder(false);
     sp<IServiceManager1_0> binderizedManager = defaultServiceManager();
     if (binderizedManager == nullptr) {
         LOG(WARNING) << "Could not registerReference for "
@@ -736,6 +737,7 @@ sp<::android::hidl::base::V1_0::IBase> getRawServiceInternal(const std::string& 
     if (kIsRecovery) {
         transport = Transport::PASSTHROUGH;
     } else {
+        ProcessState::switchToHostBinder(false);
         sm = defaultServiceManager1_1();
         if (sm == nullptr) {
             ALOGE("getService: defaultServiceManager() is null");
@@ -749,6 +751,30 @@ sp<::android::hidl::base::V1_0::IBase> getRawServiceInternal(const std::string& 
                   transportRet.description().c_str());
             return nullptr;
         }
+        if (doesSupportHostBinder())
+        {
+            if (transportRet == Transport::EMPTY) {
+                ProcessState::switchToHostBinder(true);
+                sm = defaultServiceManager1_1();
+                if (sm == nullptr) {
+                    ALOGE("getService: defaultServiceManager() of host is null");
+                    ProcessState::switchToHostBinder(false);
+                    return nullptr;
+                }
+                transportRet = sm->getTransport(descriptor, instance);
+                if (!transportRet.isOk()) {
+                    ALOGE("getService: defaultServiceManager()->getTransport of host returns %s",
+                        transportRet.description().c_str());
+                    ProcessState::switchToHostBinder(false);
+                    return nullptr;
+                }
+                if (transportRet == Transport::EMPTY) {
+                    ProcessState::switchToHostBinder(false);
+                    sm = defaultServiceManager1_1();
+                }
+            }
+        }
+
         transport = transportRet;
     }
 
@@ -828,6 +854,7 @@ status_t registerAsServiceInternal(const sp<IBase>& service, const std::string& 
         return UNEXPECTED_NULL;
     }
 
+    ProcessState::switchToHostBinder(false);
     sp<IServiceManager1_2> sm = defaultServiceManager1_2();
     if (sm == nullptr) {
         return INVALID_OPERATION;
