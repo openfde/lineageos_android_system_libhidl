@@ -141,6 +141,9 @@ cc_defaults {
     static_libs: [
         "libhwbinder-impl-internal",
     ],
+    whole_static_libs: [
+        "libtinyxml2",
+    ],
 
     target: {
         android: {
